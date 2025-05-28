@@ -10,9 +10,11 @@ import Link from "next/link";
 import Image from "next/image";
 import { ArrowLeft, CarFront, Heart, Layout } from "lucide-react";
 import { Button } from "./ui/button";
+import { CheckUser } from "@/lib/check-user";
 
 const Header = async ({ isAdminPage = false }) => {
-  const isAdmin = true;
+  const user = await CheckUser();
+  const isAdmin = user?.role === "ADMIN";
   return (
     <header className="fixed top-0 w-full bg-white/80 backdrop-blur-md border-b z-50">
       <nav className="justify-between items-center flex mx-auto px-4 py-4">

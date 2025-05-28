@@ -5,9 +5,11 @@ import { Camera, Search, Upload } from "lucide-react";
 import { Button } from "./ui/button";
 import { useDropzone } from "react-dropzone";
 import { toast } from "sonner";
-
+import { useRouter } from "next/navigation";
 
 const SearchBar = () => {
+  const router = useRouter();
+  // State variables
   const [searchTerm, setSearchTerm] = useState("");
   const [searchImage, setSearchImage] = useState(null);
   const [imagePreview, setImagePreview] = useState("");
@@ -51,15 +53,21 @@ const SearchBar = () => {
     });
 
   // Handle form submission
-  const handleTextSubmit = (e: React.FormEvent) => {
+  const handleTextSubmit = (e: any) => {
     e.preventDefault();
-    // Implement search logic here
-    console.log("Search term:", searchTerm);
+    if (!searchTerm.trim()) {
+      toast.error("Please enter a search term");
+      return;
+    }
+    router.push(`/search?query=${encodeURIComponent(searchTerm)}`);
   };
 
-  const handleImageSubmit = (e: React.FormEvent) => {
+  const handleImageSubmit = async (e: any) => {
     e.preventDefault();
-    // Implement search logic here
+    if (!searchImage) {
+      toast.error("Please upload an image to search");
+      return;
+    }
     console.log("Search term:", searchTerm);
   };
   return (
@@ -100,27 +108,17 @@ const SearchBar = () => {
         <div className="mt-4">
           <form onSubmit={handleImageSubmit} className="space-y-4">
             <div className="border-2 border-dashed border-gray-300 rounded-3xl p-6 text-center">
-              {imagePreview ? (
-                <div className="flex flex-col items-center">
-                  <img
-                    src={imagePreview}
-                    alt="Car preview"
-                    className="h-40 object-contain mb-4"
-                  />
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setSearchImage(null);
-                      setImagePreview("");
-                      toast.info("Image removed");
-                    }}
-                  >
-                    Remove Image
-                  </Button>
-                </div>
-              ) : (
-                <div {...getRootProps()} className="cursor-pointer">
-                  <input {...getInputProps()} />
+              <div {...getRootProps()} className="cursor-pointer">
+                <input {...getInputProps()} />
+                {imagePreview ? (
+                  <div className="flex flex-col items-center">
+                    <img
+                      src={imagePreview}
+                      alt="Car preview"
+                      className="h-40 object-contain mb-4"
+                    />
+                  </div>
+                ) : (
                   <div className="flex flex-col items-center">
                     <Upload className="h-12 w-12 text-gray-400 mb-2" />
 
@@ -136,9 +134,35 @@ const SearchBar = () => {
                       Supports: JPG, JPEG, PNG (max 5MB)
                     </p>
                   </div>
-                </div>
+                )}
+              </div>
+              {imagePreview && (
+                <Button
+                  variant="outline"
+                  className="cursor-pointer"
+                  onClick={() => {
+                    setSearchImage(null);
+                    setImagePreview("");
+                    toast.info("Image removed");
+                  }}
+                >
+                  Remove Image
+                </Button>
               )}
             </div>
+            {imagePreview && (
+              <Button
+                type="submit"
+                className="w-full cursor-pointer rounded-full"
+                disabled={isUploading}
+              >
+                {isUploading
+                  ? "Uploading..."
+                  // : isProcessing
+                  // ? "Analyzing image..."
+                  : "Search with this Image"}
+              </Button>
+            )}
           </form>
         </div>
       )}
