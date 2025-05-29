@@ -2,6 +2,17 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
+  experimental: {
+    serverComponentsHmrCache: false, // defaults to true
+  },
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "zyijkaxgpdmoyohcunlm.supabase.co",
+      },
+    ],
+  },
   async headers() {
     return [
       {
