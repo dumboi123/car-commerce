@@ -1,3 +1,4 @@
+"use server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
@@ -5,7 +6,6 @@ import { v4 as uuidv4 } from "uuid";
 import { db } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase";
 import { auth } from "@clerk/nextjs/server";
-import { serializeCarData } from "@/lib/helpers";
 
 // Function to convert File to base64
 async function fileToBase64(file) {
@@ -18,12 +18,12 @@ export async function processImageWithAI(file) {
   try {
     // Check if API key is available
 
-    if (!process.env.REACT_APP_AI_API_KEY) {
+    if (!process.env.GEMINI_API_KEY) {
       throw new Error("AI API key is not set");
     }
     // Initialize Google Generative AI client
-    const genAI = new GoogleGenerativeAI(process.env.REACT_APP_AI_API_KEY);
-    const model = await genAI.getGenerativeModel("gemini-2.0-flash");
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const model = await genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
     // Convert file to base64
     const base64Image = await fileToBase64(file);
@@ -39,7 +39,7 @@ export async function processImageWithAI(file) {
     // Define the prompt for car detail extraction
     const prompt = `
       Analyze this car image and extract the following information:
-      1. Make (manufacturer)
+      1. Brand (manufacturer)
       2. Model
       3. Year (approximately)
       4. Color
@@ -52,7 +52,7 @@ export async function processImageWithAI(file) {
 
       Format your response as a clean JSON object with these fields:
       {
-        "make": "",
+        "brand": "",
         "model": "",
         "year": 0000,
         "color": "",
@@ -81,7 +81,7 @@ export async function processImageWithAI(file) {
 
       // Validate the response format
       const requiredFields = [
-        "make",
+        "brand",
         "model",
         "year",
         "color",
@@ -140,7 +140,7 @@ export async function addCar({ carData, images }) {
 
     // Initialize Supabase client for server-side operations
     const cookieStore = await cookies();
-    const supabase = createClient(cookieStore);
+    const supabase = await createClient(cookieStore);
 
     // Upload all images to Supabase storage
     const imageUrls = [];

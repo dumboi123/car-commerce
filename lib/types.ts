@@ -32,3 +32,21 @@ export interface FAQItem {
   question: string;
   answer: string;
 }
+
+export interface Result {
+  success: boolean;
+  data: {
+    brand: string;
+    model: string;
+    year: number | string;
+    color: string;
+    bodyType: string;
+    fuelType: string;
+    price: string;
+    mileage: string;
+    transmission: string;
+    description: string;
+    confidence?: number;
+  };
+  [key: string]: any;
+}

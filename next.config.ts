@@ -3,6 +3,9 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   /* config options here */
   experimental: {
+    serverActions: {
+      bodySizeLimit: "10mb", // hoặc giá trị bạn muốn, ví dụ: '5mb', '20mb'
+    },
     serverComponentsHmrCache: false, // defaults to true
   },
   images: {
