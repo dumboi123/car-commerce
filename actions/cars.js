@@ -6,7 +6,7 @@ import { v4 as uuidv4 } from "uuid";
 import { db } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase";
 import { auth } from "@clerk/nextjs/server";
-
+import { serializeCarData } from "@/lib/helpers";
 // Function to convert File to base64
 async function fileToBase64(file) {
   const bytes = await file.arrayBuffer();
@@ -17,7 +17,6 @@ async function fileToBase64(file) {
 export async function processImageWithAI(file) {
   try {
     // Check if API key is available
-
     if (!process.env.GEMINI_API_KEY) {
       throw new Error("AI API key is not set");
     }
@@ -42,13 +41,13 @@ export async function processImageWithAI(file) {
       1. Brand (manufacturer)
       2. Model
       3. Year (approximately)
-      4. Color
+      4. Color (as seen in the image)
       5. Body type (SUV, Sedan, Hatchback, etc.)
-      6. Mileage
-      7. Fuel type (your best guess)
+      6. Mileage (your best guess, in km or miles, just give number, no currency symbol)
+      7. Fuel type (your best guess, e.g., Petrol, Diesel, Electric, Hybrid, Plug-in Hybrid)
       8. Transmission type (your best guess)
-      9. Price (your best guess)
-      10. Short Description as to be added to a car listing
+      9. Price (your best guess based on market trends, just give number, no currency symbol)
+      10. Short Description as to be added to a car listing but ensure it is concise and relevant to the car's features
 
       Format your response as a clean JSON object with these fields:
       {
@@ -66,7 +65,7 @@ export async function processImageWithAI(file) {
       }
 
       For confidence, provide a value between 0 and 1 representing how confident you are in your overall identification.
-      Only respond with the JSON object, nothing else.
+      Only respond with the JSON object and all the information must not be empty, nothing else.
     `;
 
     // Get response from Gemini
@@ -217,5 +216,147 @@ export async function addCar({ carData, images }) {
     };
   } catch (error) {
     throw new Error("Error adding car:" + error.message);
+  }
+}
+
+// Fetch all cars with simple search
+export async function getCars(search = "") {
+  try {
+    // Build where conditions
+    let where = {};
+
+    // Add search filter
+    if (search) {
+      where.OR = [
+        { brand: { contains: search, mode: "insensitive" } },
+        { model: { contains: search, mode: "insensitive" } },
+        { color: { contains: search, mode: "insensitive" } },
+      ];
+    }
+
+    // Execute main query
+    const cars = await db.car.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+    });
+
+    const serializedCars = cars.map(serializeCarData);
+
+    return {
+      success: true,
+      data: serializedCars,
+    };
+  } catch (error) {
+    console.error("Error fetching cars:", error);
+    return {
+      success: false,
+      error: error.message,
+    };
+  }
+}
+
+// Delete a car by ID
+export async function deleteCar(id) {
+  try {
+    const { userId } = await auth();
+    if (!userId) throw new Error("Unauthorized");
+
+    // First, fetch the car to get its images
+    const car = await db.car.findUnique({
+      where: { id },
+      select: { images: true },
+    });
+
+    if (!car) {
+      return {
+        success: false,
+        error: "Car not found",
+      };
+    }
+
+    // Delete the car from the database
+    await db.car.delete({
+      where: { id },
+    });
+
+    // Delete the images from Supabase storage
+    try {
+      const cookieStore = cookies();
+      const supabase = createClient(cookieStore);
+
+      // Extract file paths from image URLs
+      const filePaths = car.images
+        .map((imageUrl) => {
+          const url = new URL(imageUrl);
+          const pathMatch = url.pathname.match(/\/car-images\/(.*)/);
+          return pathMatch ? pathMatch[1] : null;
+        })
+        .filter(Boolean);
+
+      // Delete files from storage if paths were extracted
+      if (filePaths.length > 0) {
+        const { error } = await supabase.storage
+          .from("car-images")
+          .remove(filePaths);
+
+        if (error) {
+          console.error("Error deleting images:", error);
+          // We continue even if image deletion fails
+        }
+      }
+    } catch (storageError) {
+      console.error("Error with storage operations:", storageError);
+      // Continue with the function even if storage operations fail
+    }
+
+    // Revalidate the cars list page
+    revalidatePath("/admin/cars");
+
+    return {
+      success: true,
+    };
+  } catch (error) {
+    console.error("Error deleting car:", error);
+    return {
+      success: false,
+      error: error.message,
+    };
+  }
+}
+
+// Update car status or featured status
+export async function updateCarStatus(id, { status, featured }) {
+  try {
+    const { userId } = await auth();
+    if (!userId) throw new Error("Unauthorized");
+
+    const updateData = {};
+
+    if (status !== undefined) {
+      updateData.status = status;
+    }
+
+    if (featured !== undefined) {
+      updateData.featured = featured;
+    }
+
+    // Update the car
+    await db.car.update({
+      where: { id },
+      data: updateData,
+    });
+
+    // Revalidate the cars list page
+    revalidatePath("/admin/cars");
+
+    return {
+      success: true,
+    };
+  } catch (error) {
+    console.error("Error updating car status:", error);
+    return {
+      success: false,
+      error: error.message,
+    };
   }
 }

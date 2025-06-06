@@ -97,6 +97,7 @@ const AddCarForm = () => {
       router.push("/admin/cars");
     }
   }, [addCarResult, router]);
+  
   // Handle image processing result
   useEffect(() => {
     if (processImageError) {
