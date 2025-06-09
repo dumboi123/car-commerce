@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { Result } from "../lib/types";
+// import { Result } from "../lib/types";
 const useFetch = (cb: any) => {
-  const [data, setData] = useState<Result>({} as Result);
+  const [data, setData] = useState<any>();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 

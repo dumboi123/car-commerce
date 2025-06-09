@@ -192,7 +192,7 @@ const CarsList = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {carsData.data.map((car) => (
+                  {carsData.data.map((car: any) => (
                     <TableRow key={car.id}>
                       <TableCell>
                         <div className="w-10 h-10 rounded-md overflow-hidden">
