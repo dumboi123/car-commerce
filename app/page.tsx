@@ -5,11 +5,15 @@ import { Button } from "@/components/ui/button";
 import { Car, ChevronRight, Shield, Calendar } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
-import { featuredCars, carBrands, bodyTypes, faqItems } from "@/lib/data";
+import { carBrands, bodyTypes, faqItems } from "@/lib/data";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { SignedOut } from "@clerk/nextjs";
+import { getFeaturedCars } from "@/actions/home";
 // import { Calendar } from "@/components/ui/calendar";
-export default function Home() {
+export default async function Home() {
+
+  const featuredCars = await getFeaturedCars();
+
   return (
     <>
       <div className="pt-20 flex flex-col">
@@ -46,7 +50,7 @@ export default function Home() {
             </div>
             {/* Featuring */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {featuredCars.map((car) => (
+              {featuredCars.map((car : any) => (
                 <CustomCard key={car.id} car={car} />
               ))}
             </div>
