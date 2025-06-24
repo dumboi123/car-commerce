@@ -320,7 +320,7 @@ export async function getSavedCars() {
 }
 
 // Utility: Get current user from auth and DB
-async function getCurrentUser(throwIfNotFound = true) {
+export async function getCurrentUser(throwIfNotFound = true) {
   const { userId } = await auth();
   if (!userId) {
     if (throwIfNotFound) throw new Error("Unauthorized");

@@ -4,17 +4,9 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { db } from "@/lib/prisma";
 import aj from "@/lib/arcjet";
 import { request } from "@arcjet/next";
+import { getCurrentUser } from "./car-listing";
+import { serializeCarData } from "@/lib/helpers";
 
-// Function to serialize car data
-function serializeCarData(car, isWishlisted = false) {
-  return {
-    ...car,
-    price: car.price ? parseFloat(car.price.toString()) : 0,
-    createdAt: car.createdAt?.toISOString(),
-    updatedAt: car.updatedAt?.toISOString(),
-    isWishlisted,
-  };
-}
 
 /**
  * Get featured cars for the homepage
@@ -30,7 +22,25 @@ export async function getFeaturedCars(limit = 3) {
       orderBy: { createdAt: "desc" },
     });
 
+    const dbUser = await getCurrentUser(false);
+
+    if (dbUser) {
+      let wishlisted = new Set();
+      const savedCars = await db.userSavedCar.findMany({
+        where: { userId: dbUser.id },
+        select: { carId: true },
+      });
+
+      wishlisted = new Set(savedCars.map((saved) => saved.carId));
+      // Serialize and check wishlist status
+      const serializedCars = cars.map((car) =>
+        serializeCarData(car, wishlisted.has(car.id))
+      );
+      return serializedCars
+    }
+    // If no user, just serialize without wishlist status
     return cars.map(serializeCarData);
+
   } catch (error) {
     throw new Error("Error fetching featured cars:" + error.message);
   }

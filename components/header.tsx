@@ -41,7 +41,7 @@ const Header = async ({ isAdminPage = false }) => {
               </>
             ) : (
               <>
-                <Link href={"/saved-carts"}>
+                <Link href={"/saved-cars"}>
                   <Button>
                     <Heart size={18} />
                     <span className="hidden md:inline">Saved cars</span>

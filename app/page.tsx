@@ -51,6 +51,7 @@ export default async function Home() {
             {/* Featuring */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {featuredCars.map((car : any) => (
+                console.log(car),
                 <CustomCard key={car.id} car={car} />
               ))}
             </div>

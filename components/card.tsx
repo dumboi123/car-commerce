@@ -1,21 +1,63 @@
 "use client";
-import React, { useState } from "react";
+
+import { useState, useEffect } from "react";
 import Image from "next/image";
+import { Heart, Car as CarIcon, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Car } from "@/lib/types";
-import { CarIcon, Heart, Loader2 } from "lucide-react";
-import { Button } from "./ui/button";
-import { Badge } from "./ui/badge";
+import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
+import { toggleSavedCar } from "@/actions/car-listing";
+import { useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
+import useFetch from "@/hooks/use-fetch";
+import { Car } from "@/lib/types";
 
-const CustomCard = ({ car }: { car: Car }) => {
+const CustomCard = ({ car } : {car: Car}) => {
+  const { isSignedIn } = useAuth();
   const router = useRouter();
-  const [isWishlisted, setIsWishlisted] = useState(car.wishlisted);
+  const [isSaved, setIsSaved] = useState(car.wishlisted);
 
-  const handleToggleWishList = async () => {
-    setIsWishlisted(!isWishlisted);
-    // Simulate an API call to toggle the wishlist status}
+  // Use the useFetch hook
+  const {
+    loading: isToggling,
+    fn: toggleSavedCarFn,
+    data: toggleResult,
+    error: toggleError,
+  } = useFetch(toggleSavedCar);
+
+  // Handle toggle result with useEffect
+  useEffect(() => {
+    if (toggleResult?.success && toggleResult.saved !== isSaved) {
+      setIsSaved(toggleResult.saved);
+      toast.success(toggleResult.message);
+    }
+  }, [toggleResult, isSaved]);
+
+  // Handle errors with useEffect
+  useEffect(() => {
+    if (toggleError) {
+      toast.error("Failed to update favorites");
+    }
+  }, [toggleError]);
+
+  // Handle save/unsave car
+  const handleToggleSave = async (e : any) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!isSignedIn) {
+      toast.error("Please sign in to save cars");
+      router.push("/sign-in");
+      return;
+    }
+
+    if (isToggling) return;
+
+    // Call the toggleSavedCar function using our useFetch hook
+    await toggleSavedCarFn(car.id);
   };
+
   return (
     <Card className="overflow-hidden hover:shadow-lg transition group">
       <div className="relative h-48">
@@ -36,67 +78,6 @@ const CustomCard = ({ car }: { car: Car }) => {
 
         <Button
           variant="outline"
-          size="icon"
-          className={`absolute top-1 right-2 rounded-full p-1.5 ${
-            isWishlisted
-              ? " hover:bg-neutral-300 "
-              : " hover:bg-neutral-500 bg-black"
-          }`}
-          onClick={handleToggleWishList}
-        >
-          <Heart
-            className={`${
-              isWishlisted ? "fill-current text-red-500" : "text-white"
-            }`}
-            size={20}
-          />
-        </Button>
-      </div>
-      {/* Card Content */}
-      <CardContent className="p-4">
-        <div className="flex flex-col mb-2">
-          <h3 className="text-lg font-bold line-clamp-1">
-            {car.make} {car.model}
-          </h3>
-          <span className="text-xl font-bold text-blue-600">
-            ${car.price.toLocaleString()}
-          </span>
-        </div>
-
-        <div className="text-gray-600 mb-2 flex items-center">
-          <span>{car.year}</span>
-          <span className="mx-2">•</span>
-          <span>{car.transmission}</span>
-          <span className="mx-2">•</span>
-          <span>{car.fuelType}</span>
-        </div>
-
-        <div className="flex flex-wrap gap-1 mb-4">
-          <Badge variant="outline" className="bg-gray-50">
-            {car.bodyType}
-          </Badge>
-          <Badge variant="outline" className="bg-gray-50">
-            {car.mileage.toLocaleString()} miles
-          </Badge>
-          <Badge variant="outline" className="bg-gray-50">
-            {car.color}
-          </Badge>
-        </div>
-
-        <div className="flex justify-between">
-          <Button
-            className="flex-1"
-            onClick={() => {
-              router.push(`/cars/${car.id}`);
-            }}
-          >
-            View Car
-          </Button>
-        </div>
-      </CardContent>
-      {/* 
-        <Button
-          variant="ghost"
           size="icon"
           className={`absolute top-2 right-2 bg-white/90 rounded-full p-1.5 ${
             isSaved
@@ -154,9 +135,8 @@ const CustomCard = ({ car }: { car: Car }) => {
             View Car
           </Button>
         </div>
-      </CardContent> */}
+      </CardContent>
     </Card>
   );
 };
-
 export default CustomCard;
